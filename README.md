@@ -9,15 +9,15 @@ http://localhost:5000
 # COMMIT HISTORY
 
 ### 02.11 JS project
-created - 02.11
-updated - 14.11
-rejected - 16.11
-deleted - 21.11
+- created - 02.11
+- updated - 14.11
+- rejected - 16.11
+- deleted - 21.11
 
 ### 16.11 Spring (Java) project
-created - 16.11
-rejected - 21.11
-deleted - 21.11
+- created - 16.11
+- rejected - 21.11
+- deleted - 21.11
 
 ## 21.11 Created database
 database file with name `Wisielec.db`
