@@ -24,6 +24,13 @@ database file with name `Wisielec.db`
 ### Database program
 We are using SQLite Db Browser https://sqlitebrowser.org/dl/
 
+## 29.11 Commited progress - game controller
+pushed GameController.cs and Dto
+
+## 05.12 Commited progress - lobbies, users, words controller & Dtos 
+pushed LobbiesController.cs, UsersController.cs, WordsController.cs and Dtos
+ 
+
 
 
 
