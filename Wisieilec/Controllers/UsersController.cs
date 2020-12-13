@@ -1,12 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.Tasks;
 using Wisieilec.API.Data;
 using Wisieilec.Data.Entities;
+using Wisieilec.Dtos;
 
 namespace Wisieilec.Controllers
 {
@@ -15,96 +19,136 @@ namespace Wisieilec.Controllers
     public class UsersController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly ILogger<UsersController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public UsersController(DataContext context)
+        public UsersController(
+            DataContext context,
+            ILogger<UsersController> logger,
+            IConfiguration configuration)
         {
             _context = context;
+            _logger = logger;
+            _configuration = configuration;
         }
 
-        // GET: api/Users
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(UserForRegisterDto userForRegisterDto)
         {
-            return await _context.Users.ToListAsync();
+            _logger.LogInformation("Invoked UsersController.Register");
+
+            userForRegisterDto.Username = userForRegisterDto.Username.ToLower();
+
+            if (await UserExists(userForRegisterDto.Username))
+                return BadRequest("Username already exists");
+
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == RoleNames.User.ToString());
+            var userToCreate = new User
+            {
+                RoleId = role.Id,
+                Username = userForRegisterDto.Username
+            };
+
+            await Register(userToCreate, userForRegisterDto.Password);
+
+            return StatusCode(201);
         }
 
-        // GET: api/Users/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(UserForLoginDto userForLoginDto)
         {
-            var user = await _context.Users.FindAsync(id);
+            _logger.LogInformation("Invoked UsersController.Login");
+
+            var userFromRepo = await Login(userForLoginDto.Username.ToLower(), userForLoginDto.Password);
+
+            if (userFromRepo == null)
+            {
+                return Unauthorized();
+            }
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userFromRepo.Id.ToString()),
+                new Claim(ClaimTypes.Role, userFromRepo.Role.Name)
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value));
+
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.Now.AddDays(1),
+                SigningCredentials = creds
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+
+            return Ok(new
+            {
+                token = tokenHandler.WriteToken(token)
+            });
+        }
+
+        private async Task<User> Login(string username, string password)
+        {
+            var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == username);
 
             if (user == null)
-            {
-                return NotFound();
-            }
+                return null;
+
+            if (!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
+                return null;
 
             return user;
         }
 
-        // PUT: api/Users/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, User user)
+        private bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
         {
-            if (id != user.Id)
+            using (var hmac = new System.Security.Cryptography.HMACSHA512(passwordSalt))
             {
-                return BadRequest();
-            }
+                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
 
-            _context.Entry(user).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id))
+                for (int i = 0; i < computedHash.Length; i++)
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
+                    if (computedHash[i] != passwordHash[i])
+                        return false;
                 }
             }
-
-            return NoContent();
+            return true;
         }
 
-        // POST: api/Users
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
+        private async Task<User> Register(User user, string password)
         {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            byte[] passwordHash, passwordSalt;
+            CreatePasswordHash(password, out passwordHash, out passwordSalt);
 
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
-        }
+            user.PasswordHash = passwordHash;
+            user.PasswordSalt = passwordSalt;
 
-        // DELETE: api/Users/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<User>> DeleteUser(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            _context.Users.Remove(user);
+            await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
 
             return user;
         }
 
-        private bool UserExists(int id)
+        private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {
-            return _context.Users.Any(e => e.Id == id);
+            using (var hmac = new System.Security.Cryptography.HMACSHA512())
+            {
+                passwordSalt = hmac.Key;
+                passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+            }
+        }
+
+        private async Task<bool> UserExists(string username)
+        {
+            if (await _context.Users.AnyAsync(u => u.Username == username))
+                return true;
+
+            return false;
         }
     }
 }

@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Wisieilec.API.Data;
 using Wisieilec.Data.Entities;
@@ -10,21 +14,32 @@ using Wisieilec.Dtos;
 
 namespace Wisieilec.Controllers
 {
+    
     [Route("api/lobbies")]
     [ApiController]
     public class LobbiesController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<LobbiesController> _logger;
 
-        public LobbiesController(DataContext context)
+        public LobbiesController(
+            DataContext context, 
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<LobbiesController> logger)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
         // GET: api/Lobbies
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Lobby>>> GetLobbies()
         {
+            _logger.LogInformation("Invoked LobbiesController.GetLobbies");
+
             return await _context.Lobbies.ToListAsync();
         }
 
@@ -32,10 +47,13 @@ namespace Wisieilec.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Lobby>> GetLobby(int id)
         {
+            _logger.LogInformation($"Invoked LobbiesController.GetLobby with id: [{id}]");
+
             var lobby = await _context.Lobbies.FindAsync(id);
 
             if (lobby == null)
             {
+                _logger.LogError($"Lobby with id: [{id}] - not found");
                 return NotFound();
             }
 
@@ -43,9 +61,12 @@ namespace Wisieilec.Controllers
         }
 
         // PUT: api/Lobbies/5
-        [HttpPut("{lobbyId}/users/{userId}")]
-        public async Task<IActionResult> JoinLobby(int lobbyId, int userId)
+        [Authorize]
+        [HttpPut("{lobbyId}")]
+        public async Task<IActionResult> JoinLobby(int lobbyId)
         {
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
             if (CanJoinLobby(lobbyId))
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
@@ -62,8 +83,7 @@ namespace Wisieilec.Controllers
         }
 
         // POST: api/Lobbies
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
+        //[Authorize]
         [HttpPost]
         public async Task<ActionResult<Lobby>> CreateLobby(LobbyDto lobbyDto)
         {
@@ -80,11 +100,16 @@ namespace Wisieilec.Controllers
             return CreatedAtAction("GetLobby", new { id = lobby.Id }, lobby);
         }
 
+        // POST: /api/Lobbies/4:start
         [HttpPost("{lobbyId}:start")]
-        public async Task<ActionResult<Lobby>> StartLobby(int lobbyId)
+        public async Task<ActionResult<int>> StartLobby(int lobbyId)
         {
-            //CHECK LOBBY STATUS BEFORE STARTING
             var lobby = await _context.Lobbies.FirstOrDefaultAsync(l => l.Id == lobbyId);
+            if (lobby.Status == LobbyStatus.Finished)
+            {
+                return NotFound();
+            }
+
             lobby.Status = LobbyStatus.Pending;
 
             int total = _context.Words.Count();
@@ -103,7 +128,7 @@ namespace Wisieilec.Controllers
             _context.Set<Game>().Add(game);
             await _context.SaveChangesAsync();
 
-            return Ok();
+            return Ok(game.Id);
         }
 
         // DELETE: api/Lobbies/5
