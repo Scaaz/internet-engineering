@@ -38,6 +38,7 @@ Account verification:
 Roles:
 - User
 - Admin (ex. Can add new words)
+
 Additionally we added Swagger framework for easier management, testing and using project 
  
 
