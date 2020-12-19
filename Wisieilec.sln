@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30711.63
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wisieilec", "Wisieilec\Wisieilec.csproj", "{0390B21C-0E15-4E3F-81D9-1B5B0B16403E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wisieilec", "Wisieilec\Wisieilec.csproj", "{0390B21C-0E15-4E3F-81D9-1B5B0B16403E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wisielec.ApiTest", "Wisielec.ApiTest\Wisielec.ApiTest.csproj", "{55A518F5-7348-4C6D-A839-467548652D1F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{0390B21C-0E15-4E3F-81D9-1B5B0B16403E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0390B21C-0E15-4E3F-81D9-1B5B0B16403E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0390B21C-0E15-4E3F-81D9-1B5B0B16403E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55A518F5-7348-4C6D-A839-467548652D1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55A518F5-7348-4C6D-A839-467548652D1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55A518F5-7348-4C6D-A839-467548652D1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55A518F5-7348-4C6D-A839-467548652D1F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
