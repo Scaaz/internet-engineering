@@ -35,11 +35,21 @@ Account verification:
 - login
 - register
 - JWT token
+
 Roles:
 - User
 - Admin (ex. Can add new words)
 
 Additionally we added Swagger framework for easier management, testing and using project 
+
+## 19.12 Added tests
+
+Integration tests:
+- Lobbies
+- Specific lobby (by ID)
+- Creating lobby 
+- Creating lobby in DB
+- Creating user in DB
  
 
 
