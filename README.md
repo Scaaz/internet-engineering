@@ -4,7 +4,7 @@
 - .NET CORE 3.1 https://dotnet.microsoft.com/download/dotnet-core/3.1 
 
 ## Host default address
-http://localhost:5000
+http://localhost:5001
 
 # COMMIT HISTORY
 
@@ -26,6 +26,8 @@ We are using SQLite Db Browser https://sqlitebrowser.org/dl/
 
 ## 29.11 Commited progress - game controller
 Pushed GameController.cs and Dto
+### Testing in Postman
+https://www.postman.com
 
 ## 05.12 Commited progress - lobbies, users, words controller & Dtos 
 Pushed LobbiesController.cs, UsersController.cs, WordsController.cs and Dtos
@@ -40,10 +42,14 @@ Roles:
 - User
 - Admin (ex. Can add new words)
 
-Additionally we added Swagger framework for easier management, testing and using project 
+Additionally we added Swagger framework for easier management, testing and using project
+
+### JWT debugger
+https://jwt.io/#debugger-io (Encoded -> Decoded)
+### Swagger UI
+https://swagger.io/tools/swagger-ui/
 
 ## 19.12 Added tests
-
 Integration tests:
 - Lobbies
 - Specific lobby (by ID)
